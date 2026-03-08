@@ -16,3 +16,8 @@ class AgentState(TypedDict):
     react_steps:      int                # tool calls made in the ReAct loop (attempt 3 only)
     status_code:      int                # HTTP status code for the final response
     error_message:    str | None         # human-readable error (400 / 422 paths)
+    # Per-component timing (ms) — accumulated across all attempts
+    rag_ms:           float
+    llm_ms:           float
+    validate_ms:      float
+    agentic_ms:       float

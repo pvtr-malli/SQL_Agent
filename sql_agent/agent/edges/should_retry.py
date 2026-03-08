@@ -17,19 +17,20 @@ def should_retry(state: AgentState) -> str:
     error = state.get("validation_error")
     prev = state.get("previous_error")
 
-    # --- TESTING: always go to agentic to verify the agentic path ---
-    logger.info("[should_retry] TESTING — forcing agentic (error=%r)", error)
-    return "agentic"
-
-    if error is None:               # noqa: unreachable
+    if error is None:
         logger.info("[should_retry] → success")
         return "success"
 
-    # if error == prev:               # noqa: unreachable
-    #     return "failure"
-    # if state.get("attempt", 1) >= 3:
-    #     return "agentic"
-    # return "retry"
+    if state.get("attempt", 1) >= 3:
+        logger.info("[should_retry] → agentic (attempt=%d)", state.get("attempt", 1))
+        return "agentic"
+
+    if error == prev:
+        logger.warning("[should_retry] → failure (same error repeated, no progress)")
+        return "failure"
+
+    logger.info("[should_retry] → retry (attempt=%d error=%r)", state.get("attempt", 1), error)
+    return "retry"
 
 
 def retry_prep(state: AgentState) -> dict:

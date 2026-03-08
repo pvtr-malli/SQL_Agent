@@ -102,6 +102,10 @@ def run_query(
         "react_steps":     0,
         "status_code":     0,
         "error_message":   None,
+        "rag_ms":          0.0,
+        "llm_ms":          0.0,
+        "validate_ms":     0.0,
+        "agentic_ms":      0.0,
     }
 
     t0 = time.perf_counter()
@@ -125,6 +129,11 @@ def run_query(
         "attempts":    final.get("attempt", 1),
         "tables_used": final.get("tables_used", []),
         "latency_ms":  round(latency_ms, 2),
+        "rag_ms":      round(final.get("rag_ms", 0.0), 2),
+        "llm_ms":      round(final.get("llm_ms", 0.0), 2),
+        "validate_ms": round(final.get("validate_ms", 0.0), 2),
+        "agentic_ms":  round(final.get("agentic_ms", 0.0), 2),
+        "react_steps": final.get("react_steps", 0),
     }
 
 

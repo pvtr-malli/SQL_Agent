@@ -1,4 +1,5 @@
 import re
+import time
 
 import sqlglot
 import sqlglot.expressions as exp
@@ -120,12 +121,14 @@ def make_agentic_recover(llm: ChatOllama, retriever: SchemaRetriever, all_tables
         react_steps = 0
         fetched_tables: list[TableSchema] = []
         last_sql = state.get("sql", "")
+        agentic_llm_ms = 0.0
+        ag_t0 = time.perf_counter()
 
         while react_steps < MAX_REACT_STEPS:
             logger.info("[agentic_recover] ReAct step %d — calling LLM ...", react_steps + 1)
-            # print(messages)
+            t0 = time.perf_counter()
             response = llm_with_tools.invoke(messages)
-            # print("✅✅✅✅ response✅✅✅" , response)
+            agentic_llm_ms += (time.perf_counter() - t0) * 1000
             messages.append(response)
 
             # No tool calls → LLM emitted its final answer (the SQL).
@@ -157,12 +160,15 @@ def make_agentic_recover(llm: ChatOllama, retriever: SchemaRetriever, all_tables
                     logger.warning("[agentic_recover] hit MAX_REACT_STEPS=%d — stopping", MAX_REACT_STEPS)
                     break
 
+        agentic_wall_ms = (time.perf_counter() - ag_t0) * 1000
         logger.info("[agentic_recover] done — react_steps=%d final_sql=%r", react_steps, last_sql[:80] if last_sql else "")
         return {
             "sql":              last_sql,
             "tables":           fetched_tables or state.get("tables", []),
             "react_steps":      react_steps,
             "validation_error": None,   # agentic validated internally — clear the old error
+            "agentic_ms":       agentic_wall_ms,
+            "llm_ms":           state.get("llm_ms", 0.0) + agentic_llm_ms,
         }
 
     return agentic_recover

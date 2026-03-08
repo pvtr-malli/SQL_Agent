@@ -1,4 +1,5 @@
 import re
+import time
 
 from langchain_ollama import ChatOllama
 
@@ -43,13 +44,18 @@ def make_generate(llm: ChatOllama):
             f"\nQuestion: {state['question']}\n\nSQL:"
         )
 
+        t0 = time.perf_counter()
         response = llm.invoke([
             ("system", _SYSTEM_PROMPT),
             ("human", user_message),
         ])
+        llm_elapsed = (time.perf_counter() - t0) * 1000
 
         sql = _FENCE_RE.sub("", response.content).strip()
         logger.info("[generate] LLM returned SQL:\n%s", sql)
-        return {"sql": sql}
+        return {
+            "sql": sql,
+            "llm_ms": state.get("llm_ms", 0.0) + llm_elapsed,
+        }
 
     return generate

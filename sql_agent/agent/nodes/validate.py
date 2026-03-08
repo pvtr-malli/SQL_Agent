@@ -1,3 +1,5 @@
+import time
+
 import sqlglot
 import sqlglot.expressions as exp
 
@@ -19,28 +21,33 @@ _FORBIDDEN = (
 
 
 def validate(state: AgentState) -> dict:
+    t0 = time.perf_counter()
     sql = state["sql"].strip()
     tables = state["tables"]
     logger.info("[validate] validating SQL:\n%s", sql)
 
+    def _done(result: dict) -> dict:
+        result["validate_ms"] = state.get("validate_ms", 0.0) + (time.perf_counter() - t0) * 1000
+        return result
+
     if not sql:
         logger.warning("[validate] FAIL — empty SQL")
-        return {"validation_error": "LLM returned an empty response."}
+        return _done({"validation_error": "LLM returned an empty response."})
 
     # --- Layer 1: syntax check via sqlglot ---
     try:
         ast = sqlglot.parse_one(sql, error_level=sqlglot.ErrorLevel.RAISE)
     except sqlglot.errors.ParseError as exc:
         logger.warning("[validate] FAIL — syntax error: %s", exc)
-        return {"validation_error": f"Syntax error: {exc}"}
+        return _done({"validation_error": f"Syntax error: {exc}"})
 
     # --- Layer 2: SELECT-only allowlist ---
     if isinstance(ast, _FORBIDDEN):
         logger.warning("[validate] FAIL — forbidden statement type")
-        return {"validation_error": "Only SELECT statements are allowed."}
+        return _done({"validation_error": "Only SELECT statements are allowed."})
     if not isinstance(ast, exp.Select):
         logger.warning("[validate] FAIL — not a SELECT statement")
-        return {"validation_error": "Only SELECT statements are allowed."}
+        return _done({"validation_error": "Only SELECT statements are allowed."})
 
     # --- Layer 3: table existence check ---
     schema_map: dict[str, set[str]] = {
@@ -54,7 +61,7 @@ def validate(state: AgentState) -> dict:
             continue
         if name.lower() not in schema_map:
             logger.warning("[validate] FAIL — unknown table: %s", name)
-            return {"validation_error": f"Unknown table: {name}"}
+            return _done({"validation_error": f"Unknown table: {name}"})
         referenced_tables.append(name)
 
     # --- Layer 4: qualified column check (table.column only) ---
@@ -67,9 +74,7 @@ def validate(state: AgentState) -> dict:
         if qualifier.lower() in schema_map:
             if col_name.lower() not in schema_map[qualifier.lower()]:
                 logger.warning("[validate] FAIL — unknown column: %s.%s", qualifier, col_name)
-                return {
-                    "validation_error": f"Unknown column: {qualifier}.{col_name}"
-                }
+                return _done({"validation_error": f"Unknown column: {qualifier}.{col_name}"})
 
     logger.info("[validate] PASS — tables used: %s", referenced_tables)
-    return {"validation_error": None, "tables_used": referenced_tables}
+    return _done({"validation_error": None, "tables_used": referenced_tables})

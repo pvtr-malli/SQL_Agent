@@ -8,13 +8,15 @@
 - [x] Do the finsih the indexing pipeipline with the API calls 
 - [x] rertrival and its checks -> should work fine
 - [x] lang graph nodes and structure flow - decide this
-    - [ ] code the deteministic part
-    - [ ] code the agentic part
+    - [x] code the deteministic part
+    - [x] code the agentic part
 - [ ] Check the whole flow 
-- [ ] Do the latency check 
+- [x] Do the latency check  -> latency is fine even with the llm calls, its < 20s. 
 - [x] Small UI 
 - [ ] Invlove Docker if needed - not needed mostly 
 - [ ] Chekc the final desing    
-    - [ ] code changed to use try 1 & 2 is deterministic and try 3 is fully agentic (LLM decides what to do next)
+    - [x] code changed to use try 1 & 2 is deterministic and try 3 is fully agentic (LLM decides what to do 
+    next)
+    - [ ] Deployment Architecture for Production
 - [ ] Make readme
-- [ ] producion pipeline
+- [ ] Deployment Architecture for Production
