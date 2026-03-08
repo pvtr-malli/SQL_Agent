@@ -45,6 +45,17 @@ def retrieve_tables(question: str) -> str:
         return "Cannot connect to API — is the server running on port 8000?"
 
 
+def clear_cache() -> str:
+    try:
+        r = httpx.delete(f"{API_BASE}/cache", timeout=10)
+        data = r.json()
+        if r.status_code != 200:
+            return f"Error {r.status_code}: {data.get('detail', data)}"
+        return f"✓ Cleared {data['entries_cleared']} cached entries"
+    except httpx.ConnectError:
+        return "Cannot connect to API — is the server running on port 8000?"
+
+
 def generate_sql(question: str) -> str:
     """
     Call POST /query and return the generated SQL.
@@ -56,15 +67,14 @@ def generate_sql(question: str) -> str:
     try:
         r = httpx.post(f"{API_BASE}/query", json={"question": question}, timeout=60)
         data = r.json()
-        if r.status_code == 501:
-            return "⏳ /query not implemented yet — coming next."
         if r.status_code != 200:
             return f"Error {r.status_code}: {data.get('detail', data)}"
+        cache_label = " | ⚡ cache hit" if data.get("cache_hit") else ""
         return (
             f"{data['sql']}\n\n"
             f"-- attempts: {data['attempts']} | "
             f"tables: {', '.join(data.get('tables_used', []))} | "
-            f"{data['latency_ms']} ms"
+            f"{data['latency_ms']} ms{cache_label}"
         )
     except httpx.ConnectError:
         return "Cannot connect to API — is the server running on port 8000?"
@@ -78,6 +88,12 @@ with gr.Blocks(title="SQL Agent", theme=gr.themes.Soft()) as demo:
         index_btn = gr.Button("Build Index", variant="primary")
         index_out = gr.Textbox(label="Result", interactive=False)
         index_btn.click(fn=build_index, outputs=index_out)
+
+        gr.Markdown("---")
+        gr.Markdown("Clear the query cache. Do this after rebuilding the index so stale SQL is not served.")
+        cache_btn = gr.Button("Clear Cache", variant="stop")
+        cache_out = gr.Textbox(label="Result", interactive=False)
+        cache_btn.click(fn=clear_cache, outputs=cache_out)
 
     with gr.Tab("Retrieve"):
         gr.Markdown("Inspect which tables the RAG retriever selects — no LLM call.")

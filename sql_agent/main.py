@@ -11,7 +11,9 @@ from sql_agent.config.models import (
 )
 from sql_agent.indexing.retriever import SchemaRetriever
 from sql_agent.utils.schema_loader import load_schema
-from sql_agent.config.settings import INDEX_STORE, TOP_K_DEFAULT, XLSX_PATH
+from sql_agent.config.settings import CACHE_FILE, INDEX_STORE, TOP_K_DEFAULT, XLSX_PATH
+from sql_agent.agent.graph import build_graph, run_query
+from sql_agent.utils.cache import QueryCache
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(
@@ -19,8 +21,10 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
 )
 
-# Single retriever instance shared across all requests.
+# Singletons shared across all requests.
 retriever = SchemaRetriever()
+cache = QueryCache(CACHE_FILE)
+graph = None  # built lazily on first /query call (requires index to be ready)
 
 
 app = FastAPI(title="SQL Agent")
@@ -95,9 +99,54 @@ def retrieve_tables(
 
 
 @app.post("/query")
-def query(_: QueryRequest):
+def query(req: QueryRequest):
     """
     Generate SQL for a natural language question.
-    Full agent loop (RAG → generate → validate → retry) — coming in next phase.
+    Runs the full agent loop: cache check → injection check → RAG → generate → validate → retry.
     """
-    raise HTTPException(status_code=501, detail="Not implemented yet.")
+    global graph
+
+    if not retriever.is_ready:
+        raise HTTPException(status_code=503, detail="Index is empty. Call POST /index first.")
+
+    if graph is None:
+        graph = build_graph(retriever, cache)
+
+    logger.info("POST /query — question=%r", req.question)
+
+    result = run_query(req.question, retriever, cache, graph)
+
+    logger.info(
+        "POST /query — status=%d cache_hit=%s attempts=%d latency=%.1f ms",
+        result["status_code"],
+        result["cache_hit"],
+        result["attempts"],
+        result["latency_ms"],
+    )
+
+    if result["status_code"] == 400:
+        raise HTTPException(status_code=400, detail=result["error"])
+    if result["status_code"] == 422:
+        raise HTTPException(status_code=422, detail={
+            "error": result["error"],
+            "last_sql": result["sql"],
+        })
+
+    return {
+        "sql":         result["sql"],
+        "cache_hit":   result["cache_hit"],
+        "attempts":    result["attempts"],
+        "tables_used": result["tables_used"],
+        "latency_ms":  result["latency_ms"],
+    }
+
+
+@app.delete("/cache")
+def clear_cache():
+    """
+    Clear all cached query → SQL entries.
+    Call this when the schema changes so stale SQL is not served from cache.
+    """
+    cleared = cache.clear()
+    logger.info("DELETE /cache — cleared %d entries", cleared)
+    return {"status": "ok", "entries_cleared": cleared}
