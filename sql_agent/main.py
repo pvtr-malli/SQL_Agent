@@ -1,6 +1,9 @@
 import time
 
+import gradio as gr
+import uvicorn
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import RedirectResponse
 
 from sql_agent.config.models import (
     IndexResponse,
@@ -32,6 +35,11 @@ else:
 
 
 app = FastAPI(title="SQL Agent")
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/ui")
 
 
 @app.post("/index", response_model=IndexResponse)
@@ -156,6 +164,23 @@ def clear_cache():
     return {"status": "ok", "entries_cleared": cleared}
 
 
+def main():
+    from sql_agent.ui import demo
+    gr.mount_gradio_app(app, demo, path="/ui")
+
+    print("=" * 60)
+    print("🚀  SQL Agent")
+    print("=" * 60)
+    print()
+    print("📡  API docs : http://localhost:8000/docs")
+    print("🖥️   UI       : http://localhost:8000/ui")
+    print()
+    print("💡  Make sure Ollama is running: ollama serve")
+    print("=" * 60)
+    print()
+
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("sql_agent.main:app", host="0.0.0.0", port=8000, reload=True)
+    main()

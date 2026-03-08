@@ -50,6 +50,9 @@
 - A semantic cache (e.g. embedding the question and retrieving cached results by cosine similarity above a threshold) would significantly improve hit rates and reduce LLM call volume — potentially a large cost and latency saving.
 - Longer term, evaluate Redis with vector search as the cache backend to support multi-instance deployments.
 
+### 7. Add test cases
+- I need to add atleast unit test cases.
+
 
 ```
 - Prompt injection -> for safely only allowing select SQL queries.

@@ -4,7 +4,7 @@
 - [x] Prompt injection ways and methods to prevent
 - [x] Finish the initial desing
 - [x] Fake data and the excel file generation
-- [ ] Choose the LLM model using some validation method.
+- [ ] Choose the LLM model using some validation method. -> No time picked the well performing decoder one.
 - [x] Do the finsih the indexing pipeipline with the API calls 
 - [x] rertrival and its checks -> should work fine
 - [x] lang graph nodes and structure flow - decide this
@@ -17,6 +17,7 @@
 - [ ] Chekc the final desing    
     - [x] code changed to use try 1 & 2 is deterministic and try 3 is fully agentic (LLM decides what to do 
     next)
-    - [ ] Deployment Architecture for Production
+    - [x] Deployment Architecture for Production
 - [ ] Make readme
-- [ ] Deployment Architecture for Production
+- [x] Deployment Architecture for Production
+- [ ] Monitoring and basic observability hook,
