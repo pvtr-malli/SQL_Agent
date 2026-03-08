@@ -13,11 +13,11 @@
 - [ ] Check the whole flow 
 - [x] Do the latency check  -> latency is fine even with the llm calls, its < 20s. 
 - [x] Small UI 
-- [ ] Invlove Docker if needed - not needed mostly 
-- [ ] Chekc the final desing    
+- [x] Invlove Docker if needed - not needed mostly  -> not added, here docker is simply a over-engineering. but can be added not a big deal.
+- [x] Chekc the final desing    
     - [x] code changed to use try 1 & 2 is deterministic and try 3 is fully agentic (LLM decides what to do 
     next)
     - [x] Deployment Architecture for Production
-- [ ] Make readme
+- [x] Make readme
 - [x] Deployment Architecture for Production
 - [ ] Monitoring and basic observability hook,

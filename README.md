@@ -97,6 +97,17 @@ Additional design docs:
 
 ---
 
+## UI
+
+**Index tab** — build the vector index and clear the cache:
+
+![Index page](images/index_page.png)
+
+**Query tab** — type a question, get SQL back:
+
+![Query mode](images/query_mode.png)
+
+---
 
 ## Quick Start
 
