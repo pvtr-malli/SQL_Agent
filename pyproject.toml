@@ -5,9 +5,15 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.8.20"
 dependencies = [
+    "fastapi>=0.124.4",
+    "gradio>=4.44.1",
+    "numpy>=1.24.4",
     "openpyxl>=3.1.5",
     "pandas>=2.0.3",
+    "python-multipart>=0.0.20",
+    "sentence-transformers>=3.2.1",
     "sqlglot>=26.33.0",
     "torch>=2.5.1",
     "transformers>=4.46.3",
+    "uvicorn>=0.33.0",
 ]
