@@ -1,6 +1,6 @@
 # API Design
 
-Three endpoints — indexing, retrieval inspection, and SQL generation.
+Five endpoints — indexing, retrieval inspection, SQL generation, cache management, and runtime metrics.
 
 ---
 
@@ -144,6 +144,70 @@ HTTP status: `503 Service Unavailable`
 
 ---
 
+## `GET /metrics`
+
+Returns accumulated runtime metrics since the server first started — persisted across restarts in `cache/metrics.json`.
+
+**Request:** no parameters.
+
+**Response:**
+```json
+{
+  "requests": {
+    "total": 42,
+    "success": 40,
+    "failed": 2,
+    "cache_hits": 8,
+    "cache_hit_rate_pct": 19.0
+  },
+  "quality": {
+    "validation_failures": 11,
+    "validation_failure_rate_pct": 26.2,
+    "agentic_triggered": 3,
+    "agentic_rate_pct": 7.1,
+    "low_score_retrievals": 1,
+    "low_score_rate_pct": 2.4,
+    "low_score_threshold": 0.2
+  },
+  "latency_avg_ms": {
+    "total": 4120.1,
+    "rag": 66.2,
+    "llm": 4046.0,
+    "validate": 3.1
+  }
+}
+```
+
+**Fields:**
+
+| Field | Description |
+|---|---|
+| `requests.total` | All queries received (excludes blocked injections) |
+| `requests.cache_hit_rate_pct` | % served from cache with no LLM call |
+| `quality.validation_failures` | Queries that needed ≥ 2 attempts (first SQL was invalid) |
+| `quality.agentic_triggered` | Queries that escalated to the ReAct agentic loop (attempt 3) |
+| `quality.low_score_retrievals` | Queries where top RAG cosine score < threshold — potential schema drift |
+| `latency_avg_ms` | Running average per component across all non-cached requests |
+
+**Notes:**
+- Counters accumulate indefinitely — there is no reset endpoint (delete `cache/metrics.json` to reset manually).
+- Cache hit requests contribute to request counts but record `0 ms` for all component timings.
+
+---
+
+## `DELETE /cache`
+
+Clears all cached query → SQL entries. Call this after rebuilding the index so stale SQL is not served.
+
+**Request:** no body required.
+
+**Response:**
+```json
+{ "status": "ok", "entries_cleared": 16 }
+```
+
+---
+
 ## Summary
 
 | Endpoint | Method | Purpose | LLM call |
@@ -151,3 +215,5 @@ HTTP status: `503 Service Unavailable`
 | `/index` | POST | Rebuild vector index from schema source | No |
 | `/retrieve` | GET | Inspect which tables RAG would select | No |
 | `/query` | POST | Generate SQL for a natural language question | Yes |
+| `/metrics` | GET | Runtime counters, quality signals, avg latency | No |
+| `/cache` | DELETE | Clear the query result cache | No |
