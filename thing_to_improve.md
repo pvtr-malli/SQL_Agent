@@ -7,7 +7,7 @@
     - I need to generate and validate the GT SQL for better mmodel evaluation.
 - Prompt Tuning
 - cache -> if we have more time, we can analysis the cache hit rate and time duration what will be helpful and everything. -> I feel this wil be a huge cost and time saver.
-    - can think of better retrival and storage here.
+    - can think of better retrival and storage here. for now its plain text mathicng.
 
 
 

@@ -7,12 +7,14 @@
 - [ ] Choose the LLM model using some validation method.
 - [x] Do the finsih the indexing pipeipline with the API calls 
 - [x] rertrival and its checks -> should work fine
-- [ ] lang graph nodes and structure flow - decide this
-    - [ ] code it
+- [x] lang graph nodes and structure flow - decide this
+    - [ ] code the deteministic part
+    - [ ] code the agentic part
 - [ ] Check the whole flow 
 - [ ] Do the latency check 
 - [x] Small UI 
-- [ ] Invlove Docker if needed 
-- [ ] Chekc the final desing
+- [ ] Invlove Docker if needed - not needed mostly 
+- [ ] Chekc the final desing    
+    - [ ] code changed to use try 1 & 2 is deterministic and try 3 is fully agentic (LLM decides what to do next)
 - [ ] Make readme
 - [ ] producion pipeline

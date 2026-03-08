@@ -31,6 +31,9 @@ indexes/
 # Persisted embedding index.
 index_store/
 
+# Query cache.
+cache/
+
 # Environment variables
 .env
 .env.local
