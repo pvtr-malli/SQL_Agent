@@ -48,3 +48,6 @@ htmlcov/
 
 # Model files.
 models/
+
+# Claude Code instructions (local only).
+CLAUDE.md
