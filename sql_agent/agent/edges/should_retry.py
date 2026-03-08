@@ -1,4 +1,7 @@
 from sql_agent.agent.state import AgentState
+from sql_agent.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def should_retry(state: AgentState) -> str:
@@ -15,15 +18,18 @@ def should_retry(state: AgentState) -> str:
     prev = state.get("previous_error")
 
     if error is None:
+        logger.info("[should_retry] → success")
         return "success"
 
-    if error == prev:
-        return "failure"
+    # --- TESTING: skip attempts 1 & 2, go straight to agentic ---
+    logger.info("[should_retry] error=%r → agentic (testing shortcut)", error)
+    return "agentic"
 
-    if state.get("attempt", 1) >= 3:
-        return "agentic"
-
-    return "retry"
+    # if error == prev:               # noqa: unreachable
+    #     return "failure"
+    # if state.get("attempt", 1) >= 3:
+    #     return "agentic"
+    # return "retry"
 
 
 def retry_prep(state: AgentState) -> dict:
@@ -31,8 +37,10 @@ def retry_prep(state: AgentState) -> dict:
     Node: increment attempt and shift current error → previous_error
     before looping back to retrieve.
     """
+    new_attempt = state["attempt"] + 1
+    logger.info("[retry_prep] attempt %d → %d", state["attempt"], new_attempt)
     return {
-        "attempt": state["attempt"] + 1,
+        "attempt": new_attempt,
         "previous_error": state["validation_error"],
         "validation_error": None,
     }

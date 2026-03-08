@@ -22,4 +22,4 @@ CACHE_FILE = os.getenv("CACHE_FILE", os.path.join(_PROJECT_ROOT, "cache", "query
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL",  "http://localhost:11434")
 LLM_MODEL       = os.getenv("LLM_MODEL",        "qwen2.5:7b")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
-MAX_REACT_STEPS = int(os.getenv("MAX_REACT_STEPS",   "10"))
+MAX_REACT_STEPS = int(os.getenv("MAX_REACT_STEPS",   "8"))

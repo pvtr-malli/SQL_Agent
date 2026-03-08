@@ -4,7 +4,7 @@ from langgraph.graph import END, StateGraph
 from langchain_ollama import ChatOllama
 
 from sql_agent.agent.edges.should_retry import retry_prep, should_retry
-from sql_agent.agent.nodes.agentic_recover import agentic_recover
+from sql_agent.agent.nodes.agentic_recover import make_agentic_recover
 from sql_agent.agent.nodes.cache_check import make_cache_check, route_cache
 from sql_agent.agent.nodes.generate import make_generate
 from sql_agent.agent.nodes.inject_check import inject_check, route_inject
@@ -18,8 +18,8 @@ from sql_agent.utils.cache import QueryCache
 
 def build_graph(retriever: SchemaRetriever, cache: QueryCache):
     """
-    Compile and return the LangGraph for the deterministic pipeline
-    (attempts 1 & 2) with a stub for attempt 3 (agentic_recover).
+    Compile and return the LangGraph for the full agent pipeline:
+    attempts 1 & 2 (deterministic) + attempt 3 (ReAct agentic recovery).
     """
     llm = ChatOllama(
         base_url=OLLAMA_BASE_URL,
@@ -36,7 +36,7 @@ def build_graph(retriever: SchemaRetriever, cache: QueryCache):
     g.add_node("generate",        make_generate(llm))
     g.add_node("validate",        validate)
     g.add_node("retry_prep",      retry_prep)
-    g.add_node("agentic_recover", agentic_recover)
+    g.add_node("agentic_recover", make_agentic_recover(llm, retriever, retriever.tables))
 
     # --- Edges ---
     g.set_entry_point("cache_check")

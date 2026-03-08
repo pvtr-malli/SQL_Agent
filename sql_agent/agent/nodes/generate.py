@@ -3,6 +3,9 @@ import re
 from langchain_ollama import ChatOllama
 
 from sql_agent.agent.state import AgentState
+from sql_agent.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 # Strip markdown code fences that LLMs often wrap SQL in.
 _FENCE_RE = re.compile(r"^```(?:sql)?\s*\n?|\n?```$", re.IGNORECASE)
@@ -30,6 +33,9 @@ def make_generate(llm: ChatOllama):
                 f"  {state['validation_error']}\n"
                 f"Fix the error in your new query.\n"
             )
+            logger.info("[generate] retrying with previous error: %s", state["validation_error"])
+
+        logger.info("[generate] calling LLM (attempt=%d) ...", state.get("attempt", 1))
 
         user_message = (
             f"Schema:\n{tables_text}\n"
@@ -43,6 +49,7 @@ def make_generate(llm: ChatOllama):
         ])
 
         sql = _FENCE_RE.sub("", response.content).strip()
+        logger.info("[generate] LLM returned SQL:\n%s", sql)
         return {"sql": sql}
 
     return generate

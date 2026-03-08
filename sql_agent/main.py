@@ -1,4 +1,3 @@
-import logging
 import time
 
 from fastapi import FastAPI, HTTPException, Query
@@ -14,17 +13,22 @@ from sql_agent.utils.schema_loader import load_schema
 from sql_agent.config.settings import CACHE_FILE, INDEX_STORE, TOP_K_DEFAULT, XLSX_PATH
 from sql_agent.agent.graph import build_graph, run_query
 from sql_agent.utils.cache import QueryCache
+from sql_agent.utils.logger import get_logger, setup_logging
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
-)
+setup_logging()
+logger = get_logger(__name__)
 
 # Singletons shared across all requests.
 retriever = SchemaRetriever()
 cache = QueryCache(CACHE_FILE)
 graph = None  # built lazily on first /query call (requires index to be ready)
+
+# Auto-load persisted index on startup — fast (~1ms), no re-embedding needed.
+# If no saved index exists the server starts empty; user calls POST /index to build.
+if retriever.load(INDEX_STORE):
+    logger.info("Startup: loaded index from disk — %d tables ready", retriever.table_count)
+else:
+    logger.info("Startup: no saved index found — call POST /index to build it")
 
 
 app = FastAPI(title="SQL Agent")
@@ -150,3 +154,8 @@ def clear_cache():
     cleared = cache.clear()
     logger.info("DELETE /cache — cleared %d entries", cleared)
     return {"status": "ok", "entries_cleared": cleared}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("sql_agent.main:app", host="0.0.0.0", port=8000, reload=True)

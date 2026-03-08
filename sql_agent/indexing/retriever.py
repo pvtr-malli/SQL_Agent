@@ -133,6 +133,14 @@ class SchemaRetriever:
         with self._lock:
             return len(self._tables)
 
+    @property
+    def tables(self) -> list:
+        """
+        Return a snapshot of all indexed TableSchema objects.
+        """
+        with self._lock:
+            return self._tables[:]
+
 
 if __name__ == "__main__":
     import sys
