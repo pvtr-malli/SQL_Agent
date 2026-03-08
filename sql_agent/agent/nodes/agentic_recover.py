@@ -14,6 +14,11 @@ from sql_agent.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+
+# This is a bounded agentic system, only 3 tools allowed. not fully open one
+# this is helpful in. prompt injection protection also.
+
+
 _FENCE_RE = re.compile(r"^```(?:sql)?\s*\n?|\n?```$", re.IGNORECASE)
 
 _SYSTEM_PROMPT = (
@@ -118,7 +123,9 @@ def make_agentic_recover(llm: ChatOllama, retriever: SchemaRetriever, all_tables
 
         while react_steps < MAX_REACT_STEPS:
             logger.info("[agentic_recover] ReAct step %d — calling LLM ...", react_steps + 1)
+            # print(messages)
             response = llm_with_tools.invoke(messages)
+            # print("✅✅✅✅ response✅✅✅" , response)
             messages.append(response)
 
             # No tool calls → LLM emitted its final answer (the SQL).
@@ -152,9 +159,10 @@ def make_agentic_recover(llm: ChatOllama, retriever: SchemaRetriever, all_tables
 
         logger.info("[agentic_recover] done — react_steps=%d final_sql=%r", react_steps, last_sql[:80] if last_sql else "")
         return {
-            "sql":         last_sql,
-            "tables":      fetched_tables or state.get("tables", []),
-            "react_steps": react_steps,
+            "sql":              last_sql,
+            "tables":           fetched_tables or state.get("tables", []),
+            "react_steps":      react_steps,
+            "validation_error": None,   # agentic validated internally — clear the old error
         }
 
     return agentic_recover
