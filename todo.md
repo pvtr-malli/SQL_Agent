@@ -5,13 +5,13 @@
 - [x] Finish the initial desing
 - [x] Fake data and the excel file generation
 - [ ] Choose the LLM model using some validation method.
-- [ ] Do the finsih the indexing pipeipline with the API calls 
-- [ ] rertrival and its checks -> should work fine
+- [x] Do the finsih the indexing pipeipline with the API calls 
+- [x] rertrival and its checks -> should work fine
 - [ ] lang graph nodes and structure flow - decide this
     - [ ] code it
 - [ ] Check the whole flow 
 - [ ] Do the latency check 
-- [ ] Small UI 
+- [x] Small UI 
 - [ ] Invlove Docker if needed 
 - [ ] Chekc the final desing
 - [ ] Make readme
