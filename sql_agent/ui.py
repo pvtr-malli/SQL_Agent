@@ -56,6 +56,33 @@ def clear_cache() -> str:
         return "Cannot connect to API — is the server running on port 8000?"
 
 
+def get_metrics() -> str:
+    try:
+        r = httpx.get(f"{API_BASE}/metrics", timeout=10)
+        data = r.json()
+        if r.status_code != 200:
+            return f"Error {r.status_code}: {data.get('detail', data)}"
+
+        req = data["requests"]
+        qua = data["quality"]
+        lat = data["latency_avg_ms"]
+
+        return (
+            f"### 📊 Requests\n"
+            f"- Total: **{req['total']}** | Success: **{req['success']}** | Failed: **{req['failed']}**\n"
+            f"- Cache hits: **{req['cache_hits']}** ({req['cache_hit_rate_pct']}%)\n\n"
+            f"### 🔍 Quality\n"
+            f"- Validation failures (≥2 attempts): **{qua['validation_failures']}** ({qua['validation_failure_rate_pct']}%)\n"
+            f"- Agentic loop triggered: **{qua['agentic_triggered']}** ({qua['agentic_rate_pct']}%)\n"
+            f"- Low retrieval score (< {qua['low_score_threshold']}): **{qua['low_score_retrievals']}** ({qua['low_score_rate_pct']}%)\n\n"
+            f"### ⚡ Avg Latency\n"
+            f"- RAG: **{lat['rag']} ms** | LLM: **{lat['llm']} ms** | Validation: **{lat['validate']} ms**\n"
+            f"- Total: **{lat['total']} ms**"
+        )
+    except httpx.ConnectError:
+        return "Cannot connect to API — is the server running on port 8000?"
+
+
 def generate_sql(question: str) -> str:
     """
     Call POST /query and return the generated SQL.
@@ -112,6 +139,12 @@ with gr.Blocks(title="SQL Agent", theme=gr.themes.Soft()) as demo:
         query_btn = gr.Button("Generate SQL", variant="primary")
         query_out = gr.Code(language="sql", label="Generated SQL")
         query_btn.click(fn=generate_sql, inputs=query_in, outputs=query_out)
+
+    with gr.Tab("Metrics"):
+        gr.Markdown("Live runtime metrics — request counts, quality signals, and average latency.")
+        metrics_btn = gr.Button("Refresh Metrics", variant="primary")
+        metrics_out = gr.Markdown()
+        metrics_btn.click(fn=get_metrics, outputs=metrics_out)
 
 
 if __name__ == "__main__":

@@ -17,6 +17,7 @@ from sql_agent.config.settings import CACHE_FILE, INDEX_STORE, TOP_K_DEFAULT, XL
 from sql_agent.agent.graph import build_graph, run_query
 from sql_agent.utils.cache import QueryCache
 from sql_agent.utils.logger import get_logger, setup_logging
+from sql_agent.utils import metrics
 
 setup_logging()
 logger = get_logger(__name__)
@@ -127,13 +128,15 @@ def query(req: QueryRequest):
     logger.info("POST /query — question=%r", req.question)
 
     result = run_query(req.question, retriever, cache, graph)
+    metrics.record(result, top_score=result.get("retrieval_top_score", 0.0))
 
     logger.info(
-        "POST /query — status=%d cache_hit=%s attempts=%d latency=%.1f ms",
+        "POST /query — status=%d cache_hit=%s attempts=%d latency=%.1f ms top_score=%.3f",
         result["status_code"],
         result["cache_hit"],
         result["attempts"],
         result["latency_ms"],
+        result.get("retrieval_top_score", 0.0),
     )
 
     if result["status_code"] == 400:
@@ -151,6 +154,15 @@ def query(req: QueryRequest):
         "tables_used": result["tables_used"],
         "latency_ms":  result["latency_ms"],
     }
+
+
+@app.get("/metrics")
+def get_metrics():
+    """
+    Return accumulated runtime metrics: request counts, success/failure rates,
+    average per-component latency, and retrieval quality signals.
+    """
+    return metrics.snapshot()
 
 
 @app.delete("/cache")

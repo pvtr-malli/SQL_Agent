@@ -54,6 +54,13 @@
 - I need to add atleast unit test cases.
 
 
+### 8. For now a simple monitoring file is added
+- For now a simple monitoring file is added, Its just a counter and gets the count metrics
+- need to elavate this to having metrics to check the output, 
+- GT evalation.
+- drifts 
+- Other business metric evaluation.
+
 ```
 - Prompt injection -> for safely only allowing select SQL queries.
     - Do analysis for more injection ways and solution specific to each one of them.
@@ -65,4 +72,5 @@
 - Prompt Tuning
 - cache -> if we have more time, we can analysis the cache hit rate and time duration what will be helpful and everything. -> I feel this wil be a huge cost and time saver.
     - can think of better retrival and storage here. for now its plain text mathicng.
+- better monitoring.
 ```

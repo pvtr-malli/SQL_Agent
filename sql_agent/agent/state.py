@@ -17,7 +17,9 @@ class AgentState(TypedDict):
     status_code:      int                # HTTP status code for the final response
     error_message:    str | None         # human-readable error (400 / 422 paths)
     # Per-component timing (ms) — accumulated across all attempts
-    rag_ms:           float
-    llm_ms:           float
-    validate_ms:      float
-    agentic_ms:       float
+    rag_ms:               float
+    llm_ms:               float
+    validate_ms:          float
+    agentic_ms:           float
+    # Retrieval quality — highest cosine score from the last retrieve call
+    retrieval_top_score:  float

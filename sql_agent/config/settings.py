@@ -18,6 +18,9 @@ TABLES_FILE = "tables.json"
 # --- Query cache ---
 CACHE_FILE = os.getenv("CACHE_FILE", os.path.join(_PROJECT_ROOT, "cache", "query_cache.json"))
 
+# --- Metrics ---
+METRICS_FILE = os.getenv("METRICS_FILE", os.path.join(_PROJECT_ROOT, "cache", "metrics.json"))
+
 # --- LLM (Ollama) ---
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL",  "http://localhost:11434")
 LLM_MODEL       = os.getenv("LLM_MODEL",        "qwen2.5:7b")
