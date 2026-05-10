@@ -1,7 +1,11 @@
 import os
+from dotenv import load_dotenv
 
 # Project root = three levels up from this file (config/ → sql_agent/ → project root).
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Load .env from project root — env vars already set in the shell take priority.
+load_dotenv(os.path.join(_PROJECT_ROOT, ".env"))
 
 # --- Paths ---
 XLSX_PATH = os.getenv("SCHEMA_PATH", os.path.join(_PROJECT_ROOT, "data", "Customer Service Tables.xlsx"))
@@ -26,3 +30,8 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL",  "http://localhost:11434")
 LLM_MODEL       = os.getenv("LLM_MODEL",        "qwen2.5:7b")
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
 MAX_REACT_STEPS = int(os.getenv("MAX_REACT_STEPS",   "8"))
+
+# --- Neo4j (Knowledge Graph) ---
+NEO4J_URI      = os.getenv("NEO4J_URI",      "bolt://localhost:7687")
+NEO4J_USER     = os.getenv("NEO4J_USER",     "neo4j")
+NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "password")

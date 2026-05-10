@@ -49,6 +49,7 @@ class RetrievedTable(BaseModel):
 class RetrieveResponse(BaseModel):
     question: str
     tables: list[RetrievedTable]
+    kg_expanded: list[str]
     top_k: int
     retrieval_latency_ms: float
 

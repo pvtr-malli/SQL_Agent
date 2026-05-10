@@ -15,6 +15,9 @@ from sql_agent.indexing.retriever import SchemaRetriever
 from sql_agent.utils.schema_loader import load_schema
 from sql_agent.config.settings import CACHE_FILE, INDEX_STORE, TOP_K_DEFAULT, XLSX_PATH
 from sql_agent.agent.graph import build_graph, run_query
+from sql_agent.kg.connection import get_driver, verify_connection
+from sql_agent.kg.expander import KGExpander
+from sql_agent.kg.ingestion import clear_graph, ingest_schema
 from sql_agent.utils.cache import QueryCache
 from sql_agent.utils.logger import get_logger, setup_logging
 from sql_agent.utils import metrics
@@ -26,6 +29,19 @@ logger = get_logger(__name__)
 retriever = SchemaRetriever()
 cache = QueryCache(CACHE_FILE)
 graph = None  # built lazily on first /query call (requires index to be ready)
+
+# KG expander — optional, degrades gracefully if Neo4j is not running.
+try:
+    _kg_driver = get_driver()
+    if verify_connection(_kg_driver):
+        expander = KGExpander(_kg_driver)
+        logger.info("Startup: Neo4j connected — KG expansion enabled")
+    else:
+        expander = None
+        logger.warning("Startup: Neo4j unreachable — KG expansion disabled")
+except Exception as exc:
+    expander = None
+    logger.warning("Startup: Neo4j unavailable (%s) — KG expansion disabled", exc)
 
 # Auto-load persisted index on startup — fast (~1ms), no re-embedding needed.
 # If no saved index exists the server starts empty; user calls POST /index to build.
@@ -46,15 +62,27 @@ def root():
 @app.post("/index", response_model=IndexResponse)
 def reindex() -> IndexResponse:
     """
-    Build (or rebuild) the vector index from the schema file and persist it to disk.
+    Build (or rebuild) the vector index and KG from the schema file.
     Call this once before using /retrieve or /query, and again whenever the schema changes.
+    Both stores are updated together so they never go out of sync.
     """
     t0 = time.perf_counter()
     logger.info("POST /index — building index from %s", XLSX_PATH)
 
     tables = load_schema(XLSX_PATH)
+
+    # --- Vector index ---
     embed_latency_ms = retriever.build_index(tables)
     retriever.save(INDEX_STORE)
+
+    # --- KG (Neo4j) — only if connected ---
+    if _kg_driver is not None:
+        clear_graph(_kg_driver)
+        ingest_schema(_kg_driver, tables)
+        logger.info("POST /index — KG repopulated (%d tables)", len(tables))
+    else:
+        logger.warning("POST /index — Neo4j unavailable, KG not updated")
+
     total_latency_ms = (time.perf_counter() - t0) * 1000
 
     logger.info(
@@ -86,9 +114,8 @@ def retrieve_tables(
 
     t0 = time.perf_counter()
     results = retriever.retrieve(question, top_k=TOP_K_DEFAULT)
-    retrieval_latency_ms = (time.perf_counter() - t0) * 1000
 
-    tables = [
+    vector_tables = [
         RetrievedTable(
             name=schema.name,
             score=round(score, 4),
@@ -97,15 +124,34 @@ def retrieve_tables(
         for schema, score in results
     ]
 
+    # KG expansion — find FK-neighbour tables the vector search missed.
+    kg_expanded: list[str] = []
+    if expander is not None:
+        seed_names = [t.name for t in vector_tables]
+        neighbor_names = expander.expand(seed_names)
+        all_tables = {s.name: s for s in retriever.tables}
+        for name in neighbor_names:
+            if name in all_tables:
+                schema = all_tables[name]
+                vector_tables.append(RetrievedTable(
+                    name=schema.name,
+                    score=0.0,   # no cosine score — came from KG, not vector search
+                    columns=[col.name for col in schema.columns],
+                ))
+                kg_expanded.append(name)
+
+    retrieval_latency_ms = (time.perf_counter() - t0) * 1000
+
     logger.info(
-        "GET /retrieve — returned %d tables in %.1f ms: %s",
-        len(tables),
+        "GET /retrieve — vector=%s kg_expanded=%s latency=%.1f ms",
+        [t.name for t in vector_tables[:TOP_K_DEFAULT]],
+        kg_expanded,
         retrieval_latency_ms,
-        [t.name for t in tables],
     )
     return RetrieveResponse(
         question=question,
-        tables=tables,
+        tables=vector_tables,
+        kg_expanded=kg_expanded,
         top_k=TOP_K_DEFAULT,
         retrieval_latency_ms=round(retrieval_latency_ms, 2),
     )
@@ -123,7 +169,7 @@ def query(req: QueryRequest):
         raise HTTPException(status_code=503, detail="Index is empty. Call POST /index first.")
 
     if graph is None:
-        graph = build_graph(retriever, cache)
+        graph = build_graph(retriever, cache, expander)
 
     logger.info("POST /query — question=%r", req.question)
 

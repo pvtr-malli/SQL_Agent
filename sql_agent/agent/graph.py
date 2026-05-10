@@ -3,6 +3,8 @@ import time
 from langgraph.graph import END, StateGraph
 from langchain_ollama import ChatOllama
 
+from typing import Optional
+
 from sql_agent.agent.edges.should_retry import retry_prep, should_retry
 from sql_agent.agent.nodes.agentic_recover import make_agentic_recover
 from sql_agent.agent.nodes.cache_check import make_cache_check, route_cache
@@ -13,10 +15,11 @@ from sql_agent.agent.nodes.validate import validate
 from sql_agent.agent.state import AgentState
 from sql_agent.config.settings import LLM_MODEL, LLM_TEMPERATURE, OLLAMA_BASE_URL
 from sql_agent.indexing.retriever import SchemaRetriever
+from sql_agent.kg.expander import KGExpander
 from sql_agent.utils.cache import QueryCache
 
 
-def build_graph(retriever: SchemaRetriever, cache: QueryCache):
+def build_graph(retriever: SchemaRetriever, cache: QueryCache, expander: Optional[KGExpander] = None):
     """
     Compile and return the LangGraph for the full agent pipeline:
     attempts 1 & 2 (deterministic) + attempt 3 (ReAct agentic recovery).
@@ -32,7 +35,7 @@ def build_graph(retriever: SchemaRetriever, cache: QueryCache):
     # --- Nodes ---
     g.add_node("cache_check",     make_cache_check(cache))
     g.add_node("inject_check",    inject_check)
-    g.add_node("retrieve",        make_retrieve(retriever))
+    g.add_node("retrieve",        make_retrieve(retriever, expander))
     g.add_node("generate",        make_generate(llm))
     g.add_node("validate",        validate)
     g.add_node("retry_prep",      retry_prep)
@@ -94,6 +97,7 @@ def run_query(
         "cache_hit":       False,
         "attempt":         1,
         "tables":          [],
+        "kg_expanded":     [],
         "sql":             "",
         "validation_error": None,
         "previous_error":  None,

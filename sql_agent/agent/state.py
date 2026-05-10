@@ -8,6 +8,7 @@ class AgentState(TypedDict):
     cache_hit:        bool               # True if result was served from cache
     attempt:          int                # current attempt number: 1, 2, or 3
     tables:           list[TableSchema]  # tables selected for this attempt
+    kg_expanded:      list[str]          # table names added by KG expansion (not in vector top-k)
     sql:              str                # last generated SQL
     validation_error: str | None         # error from validator (None = valid)
     previous_error:   str | None         # error from the attempt before this one
